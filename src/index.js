@@ -1,11 +1,13 @@
 import { GraphQLServer } from "graphql-yoga";
 import { users } from "./samples/users";
 import { posts } from "./samples/posts";
+import { comments } from "./samples/comments";
 
 const typeDefs = `
   type Query {
     users(query: String): [User!]!
     posts(query: String): [Post!]!
+    comments: [Comment!]!
     me: User!
     post: Post!
   }
@@ -16,6 +18,7 @@ const typeDefs = `
     email: String!
     age: Int
     posts: [Post!]!
+    comments: [Comment!]!
   }
 
   type Post {
@@ -24,6 +27,14 @@ const typeDefs = `
     body: String!
     published: Boolean!
     author: User!
+    comments: [Comment!]!
+  }
+
+  type Comment {
+    id: ID!
+    text: String!
+    author: User!
+    post: Post!
   }
 `;
 
@@ -44,6 +55,9 @@ const resolvers = {
         )
           return post;
       });
+    },
+    comments() {
+      return comments;
     },
     me() {
       return {
@@ -66,10 +80,21 @@ const resolvers = {
     author(parent, args, ctx, info) {
       return users.find((user) => user.id === parent.author);
     },
+    comments(parent) {
+      return comments.filter((comment) => comment.post === parent.id);
+    },
   },
   User: {
     posts(parent) {
       return posts.filter((post) => post.author === parent.id);
+    },
+    comments(parent) {
+      return comments.filter((comment) => comment.author === parent.id);
+    },
+  },
+  Comment: {
+    author(parent) {
+      return users.find((user) => user.id === parent.author);
     },
   },
 };

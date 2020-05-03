@@ -4,7 +4,7 @@ export const posts = [
     title: "Javascript basics",
     body: "All you need to know to get started with Javascript",
     published: true,
-    author: "awd1",
+    author: "awd1"
   },
   {
     id: 2,
