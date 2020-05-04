@@ -1,4 +1,5 @@
 import { GraphQLServer } from "graphql-yoga";
+import { v4 as uuidv4 } from "uuid";
 import { users } from "./samples/users";
 import { posts } from "./samples/posts";
 import { comments } from "./samples/comments";
@@ -10,6 +11,12 @@ const typeDefs = `
     comments: [Comment!]!
     me: User!
     post: Post!
+  }
+
+  type Mutation {
+    createUser(name: String!, email: String!, age: Int): User!
+    createPost(title: String!, body: String!, published: Boolean!, author: ID!): Post!
+    createComment(text: String!, post: ID!, author: ID!): Comment!
   }
 
   type User {
@@ -76,6 +83,57 @@ const resolvers = {
       };
     },
   },
+  Mutation: {
+    createUser(parent, args, ctx, info) {
+      // if (!args) return;
+
+      const emailTaken = users.some((user) => user.email === args.email);
+
+      if (emailTaken) throw new Error("Email taken");
+
+      const newUser = {
+        id: uuidv4(),
+        ...args,
+      };
+
+      users.push(newUser);
+      return newUser;
+    },
+    createPost(parent, args) {
+      const userExists = users.some((user) => user.id === args.author);
+
+      if (!userExists) throw new Error("User not found");
+
+      const newPost = {
+        id: uuidv4(),
+        ...args,
+      };
+
+      posts.push(newPost);
+
+      return newPost;
+    },
+    createComment(parent, args) {
+      const postExists = posts.some((post) => post.id === args.post);
+      const authorExists = users.some((user) => user.id === args.author);
+
+      if (!postExists || !authorExists)
+        throw new Error("Invalid input, please try again");
+
+      const isPublished = posts.find((post) => post.id === args.post).published;
+
+      if (!isPublished) throw new Error("Post has not been published");
+
+      const newComment = {
+        id: uuidv4(),
+        ...args,
+      };
+
+      comments.push(newComment);
+
+      return newComment;
+    },
+  },
   Post: {
     author(parent, args, ctx, info) {
       return users.find((user) => user.id === parent.author);
@@ -95,6 +153,9 @@ const resolvers = {
   Comment: {
     author(parent) {
       return users.find((user) => user.id === parent.author);
+    },
+    post(parent) {
+      return posts.find((post) => post.id === parent.post);
     },
   },
 };
