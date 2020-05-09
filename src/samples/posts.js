@@ -1,4 +1,4 @@
-export const posts = [
+export let posts = [
   {
     id: "1",
     title: "Javascript basics",

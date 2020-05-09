@@ -1,4 +1,4 @@
-export const comments = [
+export let comments = [
   {
     id: "comment_1",
     text: "Good job, very informative!",

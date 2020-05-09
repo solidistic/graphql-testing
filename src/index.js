@@ -14,9 +14,29 @@ const typeDefs = `
   }
 
   type Mutation {
-    createUser(name: String!, email: String!, age: Int): User!
-    createPost(title: String!, body: String!, published: Boolean!, author: ID!): Post!
-    createComment(text: String!, post: ID!, author: ID!): Comment!
+    createUser(data: CreateUserInput): User!
+    deleteUser(id: ID!): User!
+    createPost(data: CreatePostInput): Post!
+    createComment(data: CreateCommentInput): Comment!
+  }
+
+  input CreateUserInput {
+    name: String!,
+    email: String!,
+    age: Int
+  }
+
+  input CreatePostInput {
+    title: String!,
+    body: String!,
+    published: Boolean!,
+    author: ID!
+  }
+
+  input CreateCommentInput {
+    text: String!,
+    post: ID!,
+    author: ID!
   }
 
   type User {
@@ -87,26 +107,44 @@ const resolvers = {
     createUser(parent, args, ctx, info) {
       // if (!args) return;
 
-      const emailTaken = users.some((user) => user.email === args.email);
+      const emailTaken = users.some((user) => user.email === args.data.email);
 
       if (emailTaken) throw new Error("Email taken");
 
       const newUser = {
         id: uuidv4(),
-        ...args,
+        ...args.data,
       };
 
       users.push(newUser);
       return newUser;
     },
+    deleteUser(parent, args, ctx, info) {
+      const userIndex = user.findIndex((user) => user.id === args.id);
+
+      if (userIndex < 0) throw new Error("User not found");
+
+      const deletedUsers = user.splice(userIndex, 1);
+      posts = posts.filter((post) => {
+        const match = post.author !== args.id;
+
+        if (match)
+          comments = comments.filter((comment) => comment.post !== post.id);
+
+        return !match;
+      });
+      comments = comments.filter((comment) => comment.author !== args.id);
+
+      return deletedUsers[0];
+    },
     createPost(parent, args) {
-      const userExists = users.some((user) => user.id === args.author);
+      const userExists = users.some((user) => user.id === args.data.author);
 
       if (!userExists) throw new Error("User not found");
 
       const newPost = {
         id: uuidv4(),
-        ...args,
+        ...args.data,
       };
 
       posts.push(newPost);
@@ -114,19 +152,20 @@ const resolvers = {
       return newPost;
     },
     createComment(parent, args) {
-      const postExists = posts.some((post) => post.id === args.post);
-      const authorExists = users.some((user) => user.id === args.author);
+      const postExists = posts.some((post) => post.id === args.data.post);
+      const authorExists = users.some((user) => user.id === args.data.author);
 
       if (!postExists || !authorExists)
         throw new Error("Invalid input, please try again");
 
-      const isPublished = posts.find((post) => post.id === args.post).published;
+      const isPublished = posts.find((post) => post.id === args.data.post)
+        .published;
 
       if (!isPublished) throw new Error("Post has not been published");
 
       const newComment = {
         id: uuidv4(),
-        ...args,
+        ...args.data,
       };
 
       comments.push(newComment);
